@@ -7,6 +7,8 @@ on:
 jobs:
   build:
     name: Build and Release
+		permissions:
+			contents: write
     runs-on: ubuntu-latest
     steps:
     - name: Clone
