@@ -19,9 +19,9 @@ jobs:
     - name: Build
       uses: actions-rs/cargo@v1
       with:
-				command: build
-				args: --release
-		- name: Release
-			uses: softprops/action-gh-release@v1
-			with:
-				files: target/release/pbddns
+        command: build
+        args: --release
+    - name: Release
+      uses: softprops/action-gh-release@v1
+      with:
+        files: target/release/pbddns
