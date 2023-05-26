@@ -1,0 +1,27 @@
+name: Release
+on:
+  push:
+    tags:
+    - 'v*'
+
+jobs:
+  build:
+    name: Build and Release
+    runs-on: ubuntu-latest
+    steps:
+    - name: Clone
+      uses: actions/checkout@v2
+    - name: Toolchains
+      uses: actions-rs/toolchain@v1
+      with:
+        profile: minimal
+        toolchain: stable
+    - name: Build
+      uses: actions-rs/cargo@v1
+      with:
+				command: build
+				args: --release
+		- name: Release
+			uses: softprops/action-gh-release@v1
+			with:
+				files: target/release/pbddns
