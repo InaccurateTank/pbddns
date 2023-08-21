@@ -91,7 +91,7 @@ fn main() -> Result<(), Error> {
 					match list.iter().find(|x| x.name == domain.name) {
 						Some(r) => {
 							// Run update function
-							match update(&domain.name, r, &ip, &client, &config, opts.verbose)? {
+							match update(&domain.name, "", r, &ip, &client, &config, opts.verbose)? {
 								Status::Change => {
 									change[0] += 1;
 								},
@@ -113,11 +113,10 @@ fn main() -> Result<(), Error> {
 
 				// Iterate through subdomains and find the record for each
 				for s in &domain.subdomains {
-					let full_name = format!("{s}.{}", domain.name);
-					match list.iter().find(|x| x.name == full_name) {
+					match list.iter().find(|x| x.name == format!("{s}.{}", domain.name)) {
 						Some(r) => {
 							// Run update function
-							match update(&full_name, r, &ip, &client, &config, opts.verbose)? {
+							match update(&domain.name, s, r, &ip, &client, &config, opts.verbose)? {
 								Status::Change => {
 									change[0] += 1;
 								},
@@ -146,32 +145,35 @@ fn main() -> Result<(), Error> {
   Ok(())
 }
 
-fn update(domain: &str, record: &response::Record, ip: &str, client: &reqwest::blocking::Client, config: &config::Config, verbose: bool) -> Result<Status, Error> {
+fn update(tld: &str, sub: &str, record: &response::Record, ip: &str, client: &reqwest::blocking::Client, config: &config::Config, verbose: bool) -> Result<Status, Error> {
 	// Record, Client, Config, Opts
 	if record.content != ip {
-		match client.post(format!("https://porkbun.com/api/json/v3/dns/edit/{}/{}", domain, record.id))
+		match client.post(format!("https://porkbun.com/api/json/v3/dns/edit/{}/{}", tld, record.id))
 			.json(&command::Edit {
 				apikey: config.apikey.clone(),
 				secretapikey: config.secretapikey.clone(),
+				rec_type: record.rec_type.clone(),
+				name: sub.to_string(),
 				content: ip.to_string(),
-				ttl: record.ttl.clone().unwrap_or("600".to_string())
+				ttl: record.ttl.clone().unwrap_or("600".to_string()),
+				prio: record.prio.clone()
 			})
 			.send()?
 			.json::<response::Edit>()? {
 			response::Edit::Success => {
 				// Record has been changed
-				if verbose {println!("Record \"{domain}\" successfully updated")}
+				if verbose {println!("Record \"{}\" successfully updated", record.name)}
 				Ok(Status::Change)
 			},
 			response::Edit::Error(e) => {
 				// Error if record can't be changed
-				if verbose {println!("Record \"{}\" failed to update: {}", domain, e.message)}
+				if verbose {println!("Record \"{}\" failed to update: {}", record.name, e.message)}
 				Ok(Status::Error)
 			}
 		}
 	} else {
 		// Skip
-		if verbose {println!("Record \"{domain}\" skipped")}
+		if verbose {println!("Record \"{}\" skipped", record.name)}
 		Ok(Status::Skip)
 	}
 }

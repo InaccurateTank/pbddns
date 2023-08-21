@@ -10,6 +10,10 @@ pub struct Key {
 pub struct Edit {
 	pub apikey: String,
 	pub secretapikey: String,
+	pub name: String,
+	#[serde(rename = "type")]
+	pub rec_type: String,
 	pub content: String,
-	pub ttl: String
+	pub ttl: String,
+	pub prio: Option<String>
 }
