@@ -13,11 +13,17 @@ pub struct Config {
 }
 impl Config {
 	pub fn new(folder: &str) -> Result<Self, Error> {
-		let mut file = OpenOptions::new()
+		// Open or create new config
+		let mut file = if let Ok(file) = OpenOptions::new()
 			.create(true)
 			.read(true)
 			.write(true)
-			.open(concat(folder, "config.toml"))?;
+			.open(concat(folder, "config.toml")) {
+			file
+		} else {
+			// Return error if folder can't be opened.
+			return Err(format!("Error opening folder {folder}. Either the location does not exist or has permissions issues.").into())
+		};
 		let mut toml = String::new();
 		file.read_to_string(&mut toml)?;
 		if toml.is_empty() {

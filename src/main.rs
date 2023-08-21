@@ -40,8 +40,15 @@ fn main() -> Result<(), Error> {
 		opts.data
 	};
 
-	// Config
-	let config = config::Config::new(&data_folder).unwrap();
+	// Final preperations
+	let config = match config::Config::new(&data_folder) {
+		Ok(cfg) => cfg,
+		Err(e) => {
+			// Quit early if config errors.
+			println!("{}", e.to_string());
+			return Ok(())
+		}
+	};
   let client = reqwest::blocking::Client::new();
 
 	// Fetch current client IP
