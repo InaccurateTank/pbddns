@@ -1,4 +1,4 @@
-use serde::{Deserialize};
+use serde::Deserialize;
 
 // Error Response
 #[derive(Debug, Deserialize)]

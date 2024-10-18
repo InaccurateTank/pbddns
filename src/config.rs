@@ -16,6 +16,7 @@ impl Config {
 		// Open or create new config
 		let mut file = if let Ok(file) = OpenOptions::new()
 			.create(true)
+			.truncate(false)
 			.read(true)
 			.write(true)
 			.open(concat(folder, "config.toml")) {

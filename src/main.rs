@@ -45,7 +45,7 @@ fn main() -> Result<(), Error> {
 		Ok(cfg) => cfg,
 		Err(e) => {
 			// Quit early if config errors.
-			println!("{}", e.to_string());
+			println!("{}", e);
 			return Ok(())
 		}
 	};
@@ -53,7 +53,7 @@ fn main() -> Result<(), Error> {
 
 	// Fetch current client IP
 	let ip: String;
-	match client.post("https://porkbun.com/api/json/v3/ping")
+	match client.post("https://api.porkbun.com/api/json/v3/ping")
 		.json(&command::Key{
 			apikey: config.apikey.clone(),
 			secretapikey: config.secretapikey.clone()
@@ -76,7 +76,7 @@ fn main() -> Result<(), Error> {
 		let mut change: [i8; 3] = [0,0,0];
 
 		// Fetch the list of records from Porkbun and start working on them.
-		match client.post(format!("https://porkbun.com/api/json/v3/dns/retrieve/{}", domain.name))
+		match client.post(format!("https://api.porkbun.com/api/json/v3/dns/retrieve/{}", domain.name))
 			.json(&command::Key{
 				apikey: config.apikey.clone(),
 				secretapikey: config.secretapikey.clone()
@@ -155,7 +155,7 @@ fn main() -> Result<(), Error> {
 fn update(tld: &str, sub: &str, record: &response::Record, ip: &str, client: &reqwest::blocking::Client, config: &config::Config, verbose: bool) -> Result<Status, Error> {
 	// Record, Client, Config, Opts
 	if record.content != ip {
-		match client.post(format!("https://porkbun.com/api/json/v3/dns/edit/{}/{}", tld, record.id))
+		match client.post(format!("https://api.porkbun.com/api/json/v3/dns/edit/{}/{}", tld, record.id))
 			.json(&command::Edit {
 				apikey: config.apikey.clone(),
 				secretapikey: config.secretapikey.clone(),
