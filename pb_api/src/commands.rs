@@ -1,0 +1,162 @@
+//! API command objects.
+
+use std::{borrow::Cow, net::{Ipv4Addr, Ipv6Addr}};
+use serde::Serialize;
+use crate::{ApiCommand, DnsTypes};
+
+/// Standard payload for the creation or editing of a single [DnsRecord][crate::response::DnsRecord].
+#[derive(Debug, Serialize, PartialEq, Eq)]
+pub struct CreateOrEditRecord<'a> {
+	/// The subdomain for the record being created, not including the domain itself. Leave blank to create a record on the root domain. Use * to create a wildcard record.
+	#[serde(rename = "name")]
+	pub subdomain: Option<&'a str>,
+	/// The type of record being created. See [DnsTypes] for all valid types.
+	#[serde(rename = "type")]
+	pub record_type: DnsTypes,
+	/// The answer content for the record. Please see the DNS management popup from the domain management console for proper formatting of each record type.
+	pub content: Cow<'a,  str>,
+	/// Optional. The time to live in seconds for the record. The minimum and the default is 600 seconds.
+	pub ttl: Option<u64>,
+	/// Optional. The priority of the record for those that support it.
+	pub prio: Option<u32>
+}
+impl<'a> CreateOrEditRecord<'a> {
+	/// Creates a new instance of [CreateOrEditRecord] for use as a payload.
+	pub fn new(
+		subdomain: Option<&'a str>,
+		record_type: DnsTypes,
+		content: impl Into<Cow<'a, str>>
+	) -> Self {
+		Self {
+			subdomain,
+			record_type,
+			content: content.into(),
+			ttl: None,
+			prio: Some(0) }
+	}
+
+	/// Shorthand for using [CreateOrEditRecord::new()] with the type [DnsTypes::A].
+	///
+	/// Verifies that the contents are an actual [Ipv4Addr].
+	///
+	/// # Example
+	/// ```
+	/// use std::net::Ipv4Addr;
+	/// use pb_api::{commands::CreateOrEditRecord, DnsTypes};
+	///
+	/// let ip = Ipv4Addr::new(127, 0, 0, 1);
+	///
+	/// let a = CreateOrEditRecord::new(None, DnsTypes::A, "127.0.0.1");
+	/// let b = CreateOrEditRecord::new_a(None, ip);
+	/// assert_eq!(a, b);
+	/// ```
+	pub fn new_a(
+		subdomain: Option<&'a str>,
+		ip: Ipv4Addr
+	) -> Self {
+		Self::new(subdomain, DnsTypes::A, Cow::Owned(ip.to_string()))
+	}
+
+	/// Shorthand for using [CreateOrEditRecord::new()] with the type [DnsTypes::MX].
+	pub fn new_mx(
+		subdomain: Option<&'a str>,
+		content: impl Into<Cow<'a, str>>
+	) -> Self {
+		Self::new(subdomain, DnsTypes::MX, content)
+	}
+
+	/// Shorthand for using [CreateOrEditRecord::new()] with the type [DnsTypes::CNAME].
+	pub fn new_cname(
+		subdomain: Option<&'a str>,
+		content: impl Into<Cow<'a, str>>
+	) -> Self {
+		Self::new(subdomain, DnsTypes::CNAME, content)
+	}
+
+	/// Shorthand for using [CreateOrEditRecord::new()] with the type [DnsTypes::ALIAS].
+	pub fn new_alias(
+		subdomain: Option<&'a str>,
+		content: impl Into<Cow<'a, str>>
+	) -> Self {
+		Self::new(subdomain, DnsTypes::ALIAS, content)
+	}
+
+	/// Shorthand for using [CreateOrEditRecord::new()] with the type [DnsTypes::TXT].
+	pub fn new_txt(
+		subdomain: Option<&'a str>,
+		content: impl Into<Cow<'a, str>>
+	) -> Self {
+		Self::new(subdomain, DnsTypes::TXT, content)
+	}
+
+	/// Shorthand for using [CreateOrEditRecord::new()] with the type [DnsTypes::NS].
+	pub fn new_ns(
+		subdomain: Option<&'a str>,
+		content: impl Into<Cow<'a, str>>
+	) -> Self {
+		Self::new(subdomain, DnsTypes::NS, content)
+	}
+
+	/// Shorthand for using [CreateOrEditRecord::new()] with the type [DnsTypes::AAAA].
+	///
+	/// Verifies that the contents are an actual [Ipv6Addr].
+	///
+	/// # Example
+	/// ```
+	/// use std::net::Ipv6Addr;
+	/// use pb_api::{commands::CreateOrEditRecord, DnsTypes};
+	///
+	/// let ip = Ipv6Addr::new(0, 0, 0, 0, 0, 0, 0, 1);
+	///
+	/// let a = CreateOrEditRecord::new(None, DnsTypes::AAAA, "::1");
+	/// let b = CreateOrEditRecord::new_aaaa(None, ip);
+	/// assert_eq!(a, b);
+	/// ```
+	pub fn new_aaaa(
+		subdomain: Option<&'a str>,
+		ip: Ipv6Addr
+	) -> Self {
+		Self::new(subdomain, DnsTypes::AAAA, Cow::Owned(ip.to_string()))
+	}
+
+	/// Shorthand for using [CreateOrEditRecord::new()] with the type [DnsTypes::SRV].
+	pub fn new_srv(
+		subdomain: Option<&'a str>,
+		content: impl Into<Cow<'a, str>>
+	) -> Self {
+		Self::new(subdomain, DnsTypes::SRV, content)
+	}
+
+	/// Shorthand for using [CreateOrEditRecord::new()] with the type [DnsTypes::TLSA].
+	pub fn new_tsla(
+		subdomain: Option<&'a str>,
+		content: impl Into<Cow<'a, str>>
+	) -> Self {
+		Self::new(subdomain, DnsTypes::TLSA, content)
+	}
+
+	/// Shorthand for using [CreateOrEditRecord::new()] with the type [DnsTypes::CAA].
+	pub fn new_caa(
+		subdomain: Option<&'a str>,
+		content: impl Into<Cow<'a, str>>
+	) -> Self {
+		Self::new(subdomain, DnsTypes::CAA, content)
+	}
+
+	/// Shorthand for using [CreateOrEditRecord::new()] with the type [DnsTypes::HTTPS].
+	pub fn new_https(
+		subdomain: Option<&'a str>,
+		content: impl Into<Cow<'a, str>>
+	) -> Self {
+		Self::new(subdomain, DnsTypes::HTTPS, content)
+	}
+
+	/// Shorthand for using [CreateOrEditRecord::new()] with the type [DnsTypes::SVCB].
+	pub fn new_svcb(
+		subdomain: Option<&'a str>,
+		content: impl Into<Cow<'a, str>>
+	) -> Self {
+		Self::new(subdomain, DnsTypes::SVCB, content)
+	}
+}
+impl<'a> ApiCommand for CreateOrEditRecord<'a> {}
