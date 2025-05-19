@@ -5,6 +5,7 @@ use crate::DnsTypes;
 
 /// Contains the recieved error message from the API.
 #[derive(Debug, Deserialize)]
+#[serde(transparent)]
 pub struct ErrorMessage {
 	/// The error message.
 	pub message: String
