@@ -1,11 +1,11 @@
 //! API response objects.
 
+use std::net::IpAddr;
 use serde::Deserialize;
 use crate::DnsTypes;
 
 /// Contains the recieved error message from the API.
 #[derive(Debug, Deserialize)]
-#[serde(transparent)]
 pub struct ErrorMessage {
 	/// The error message.
 	pub message: String
@@ -22,11 +22,10 @@ pub enum ApiResponse<T> {
 
 /// Ping authentication testing endpoint response.
 #[derive(Debug, Deserialize)]
-#[serde(transparent)]
 pub struct Ping {
 	/// The IP used for the command.
 	#[serde(rename = "yourIp")]
-	pub ip: String
+	pub ip: IpAddr
 }
 
 /// A single DNS record as returned by the API.
