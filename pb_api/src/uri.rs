@@ -1,5 +1,5 @@
 use std::borrow::Cow;
-
+use http::Uri;
 use serde::Deserialize;
 
 /// In order to keep the endpoint list resistent to future changes it will be calculated from a newtype.
@@ -17,8 +17,9 @@ impl<'a> ApiEndpoint<'a> {
 	/// Endpoint used to test the credentials within a [Keyring][crate::Keyring].
 	///
 	/// Returns the IP address used to make the request.
-	pub fn ping(&self) -> String {
-		format!("{}/ping", self.0)
+	pub fn ping(&self) -> Uri {
+		// Frankly if this fails then somthing is deeply wrong
+		format!("{}/ping", self.0).parse().unwrap()
 	}
 }
 impl<'a> std::fmt::Display for ApiEndpoint<'a> {
