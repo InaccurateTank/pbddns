@@ -2,7 +2,7 @@
 
 use thiserror::Error;
 
-use crate::response::ErrorMessage;
+use crate::ErrorMessage;
 
 /// Actual error to return when [ApiResponse][crate::response::ApiResponse] returns an error.
 #[derive(Error, Debug)]

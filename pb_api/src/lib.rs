@@ -5,7 +5,7 @@ use serde::{Deserialize, Serialize};
 
 pub mod commands;
 pub mod error;
-pub mod response;
+pub mod responses;
 mod uri;
 pub use uri::ApiEndpoint;
 
@@ -39,6 +39,22 @@ impl Keyring {
 			payload
 		}
 	}
+}
+
+/// Contains the recieved error message from the API.
+#[derive(Debug, Deserialize)]
+pub struct ErrorMessage {
+	/// The error message.
+	pub message: String
+}
+
+/// Generic enum for responses from the API.
+#[derive(Debug, Deserialize)]
+#[allow(missing_docs)]
+#[serde(tag = "status", rename_all = "UPPERCASE")]
+pub enum ApiResponse<T> {
+	Success(T),
+	Error(ErrorMessage)
 }
 
 /// Generic container for API commands utilizing a [Keyring].
