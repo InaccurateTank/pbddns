@@ -20,6 +20,15 @@ pub enum ApiResponse<T> {
 	Error(ErrorMessage)
 }
 
+/// Ping authentication testing endpoint response.
+#[derive(Debug, Deserialize)]
+#[serde(transparent)]
+pub struct Ping {
+	/// The IP used for the command.
+	#[serde(rename = "yourIp")]
+	pub ip: String
+}
+
 /// A single DNS record as returned by the API.
 #[derive(Debug, Deserialize)]
 pub struct DnsRecord {

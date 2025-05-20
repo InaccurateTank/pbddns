@@ -14,7 +14,7 @@ pub struct CreateOrEditRecord<'a> {
 	#[serde(rename = "type")]
 	pub record_type: DnsTypes,
 	/// The answer content for the record. Please see the DNS management popup from the domain management console for proper formatting of each record type.
-	pub content: Cow<'a,  str>,
+	pub content: Cow<'a, str>,
 	/// Optional. The time to live in seconds for the record. The minimum and the default is 600 seconds.
 	pub ttl: Option<u64>,
 	/// Optional. The priority of the record for those that support it.
