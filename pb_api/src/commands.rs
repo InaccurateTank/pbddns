@@ -2,7 +2,7 @@
 
 use std::{borrow::Cow, net::{Ipv4Addr, Ipv6Addr}};
 use serde::Serialize;
-use crate::{ApiCommand, DnsTypes};
+use crate::{PbCommand, DnsTypes};
 
 /// Standard payload for the creation or editing of a single [DnsRecord][crate::response::DnsRecord].
 #[derive(Debug, Serialize, PartialEq, Eq)]
@@ -159,4 +159,4 @@ impl<'a> CreateOrEditRecord<'a> {
 		Self::new(subdomain, DnsTypes::SVCB, content)
 	}
 }
-impl<'a> ApiCommand for CreateOrEditRecord<'a> {}
+impl<'a> PbCommand for CreateOrEditRecord<'a> {}

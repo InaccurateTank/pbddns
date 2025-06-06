@@ -4,13 +4,16 @@
 use serde::{Deserialize, Serialize};
 
 pub mod commands;
-pub mod error;
+mod error;
+pub use error::Error;
 pub mod responses;
-mod uri;
-pub use uri::ApiEndpoint;
+mod endpoint;
+pub use endpoint::ApiEndpoint;
 
 /// Marker trait that identifies the struct as a valid API command.
-pub trait ApiCommand {}
+pub trait PbCommand {}
+/// Marker trait that identifies the struct as a valid API response.
+pub trait PbResponse {}
 
 /// Holds the credentials used to access the API.
 ///
@@ -33,13 +36,14 @@ impl Keyring {
 	}
 
 	/// Creates a [LongCommand] out of a [Keyring] reference and a generic serializable payload.
-	pub fn as_long_command<'a, T: ApiCommand>(&'a self, payload: T) -> LongCommand<'a, T> {
+	pub fn as_long_command<'a, T: PbCommand>(&'a self, payload: T) -> LongCommand<'a, T> {
 		LongCommand {
 			keyring: self,
 			payload
 		}
 	}
 }
+impl PbCommand for Keyring {}
 
 /// Contains the recieved error message from the API.
 #[derive(Debug, Deserialize)]
@@ -52,14 +56,14 @@ pub struct ErrorMessage {
 #[derive(Debug, Deserialize)]
 #[allow(missing_docs)]
 #[serde(tag = "status", rename_all = "UPPERCASE")]
-pub enum ApiResponse<T> {
+pub enum ApiResponse<T: PbResponse> {
 	Success(T),
 	Error(ErrorMessage)
 }
 
 /// Generic container for API commands utilizing a [Keyring].
 #[derive(Serialize)]
-pub struct LongCommand<'a, T: ApiCommand> {
+pub struct LongCommand<'a, T: PbCommand> {
 	#[serde(flatten)]
 	keyring: &'a Keyring,
 	#[serde(flatten)]
