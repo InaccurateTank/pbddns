@@ -1,50 +1,60 @@
-use std::{
-	fs::OpenOptions,
-	io::{Read, Write}
-};
-use serde::{Serialize, Deserialize};
-use crate::{concat, Error};
+use std::{collections, fs, io};
+use color_eyre::{Result, Section};
+use serde::Deserialize;
+use crate::error::ConfigError;
 
-#[derive(Debug, Serialize, Deserialize)]
-pub struct Config {
-	pub apikey: String,
-	pub secretapikey: String,
-	pub domains: Vec<Domain>
-}
-impl Config {
-	pub fn new(folder: &str) -> Result<Self, Error> {
-		// Open or create new config
-		let mut file = if let Ok(file) = OpenOptions::new()
-			.create(true)
-			.truncate(false)
-			.read(true)
-			.write(true)
-			.open(concat(folder, "config.toml")) {
-			file
-		} else {
-			// Return error if folder can't be opened.
-			return Err(format!("Error opening folder {folder}. Either the location does not exist or has permissions issues.").into())
-		};
-		let mut toml = String::new();
-		file.read_to_string(&mut toml)?;
-		if toml.is_empty() {
-			write!(file, r##"apikey = ""
+const DEFAULT_CONFIG: &'static str = r##"endpoint = "https://api.porkbun.com/api/json/v3"
+apikey = ""
 secretapikey = ""
 
 [[domains]]
 name = "example.com"
 update_tld = false
-subdomains = []"##)?;
-			Err(String::from("Config file does not exist. Please fill out generated config file before running again.").into())
-		} else {
-			Ok(toml::from_str(&toml)?)
+subdomains = []"##;
+
+#[derive(Deserialize)]
+pub struct Config<'a> {
+	pub endpoint: pb_api::ApiEndpoint<'a>,
+	#[serde(flatten)]
+	pub keyring: pb_api::Keyring,
+	pub domains: collections::HashMap<String, Domain>
+}
+impl<'a> Config<'a> {
+	pub fn load(
+		path: impl AsRef<std::path::Path>
+	) -> Result<Self> {
+		let config_path = path.as_ref();
+		match fs::read_to_string(config_path) {
+			Ok(file) => Ok(toml::from_str(&file)?),
+			Err(e) => {
+				let generated: Result<bool, io::Error> = if e.kind() == io::ErrorKind::NotFound {
+					if let Some(folder) = config_path.parent() {
+						fs::create_dir_all(folder)?;
+					}
+					fs::write(config_path, DEFAULT_CONFIG)?;
+					Ok(true)
+				} else {
+					Ok(false)
+				};
+
+				Err(ConfigError::MissingFile {
+					path: config_path.into(),
+					source: e
+				}).with_suggestion(|| {
+					if generated.is_ok_and(|x|x) {
+						"Please fill out the generated config file before running."
+					} else {
+						"Please make sure the configuration path is either correct or writable before running."
+					}
+				})
+			}
 		}
 	}
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Deserialize)]
 pub struct Domain {
-	pub name: String,
+	// pub name: String,
 	pub update_tld: bool,
 	pub subdomains: Vec<String>
 }
