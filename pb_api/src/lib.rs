@@ -4,42 +4,40 @@
 use serde::{Deserialize, Serialize};
 
 pub mod commands;
-mod error;
-pub use error::Error;
+pub mod error;
 pub mod responses;
 mod endpoint;
 pub use endpoint::ApiEndpoint;
 
-/// Marker trait that identifies the struct as a valid API command.
-pub trait PbCommand {
-	/// Fetches a response from the API using the command.
-	fn get_response<T: PbResponse + for<'a> Deserialize<'a>>(
-		&self,
-		agent: &ureq::Agent,
-		endpoint: ureq::http::Uri
-	) -> Result<T, error::ApiError> where Self: Serialize {
-		let mut response = agent.post(endpoint)
-			.send_json(self)?;
-		match response.body_mut().read_json::<ApiResponse<T>>()? {
-			ApiResponse::Success(t) => Ok(t),
-			ApiResponse::Error(e) =>
-				Err(
-					error::ApiError::ApiError(
-						Error {
-							status: response.status(),
-							error: Some(e)
-						}
-					)
+fn _post<C: Serialize, R: PbResponse + for<'de> Deserialize<'de>>(
+	command: &C,
+	agent: &ureq::Agent,
+	endpoint: ureq::http::Uri
+) -> Result<R, error::ApiError> {
+	let mut response = agent.post(endpoint)
+		.send_json(command)?;
+	match response.body_mut().read_json::<ApiResponse<R>>()? {
+		ApiResponse::Success(t) => Ok(t),
+		ApiResponse::Error(e) =>
+			Err(
+				error::ApiError::ApiError(
+					error::Error {
+						status: response.status(),
+						error: Some(e)
+					}
 				)
-		}
+			)
 	}
 }
+
+/// Marker trait that identifies the struct as a valid API command.
+pub trait PbCommand {}
 /// Marker trait that identifies the struct as a valid API response.
 pub trait PbResponse {}
 
 /// Holds the credentials used to access the API.
 ///
-/// For a fair portion of the API this is a valid payload in and of itself. In order to add additional data to the payload use [Keyring::as_long_command()]
+/// For a fair portion of the API this is a valid payload in and of itself. In order to add additional data to the payload use [Keyring::with()]
 #[derive(Deserialize, Serialize)]
 pub struct Keyring {
 	secretapikey: String,
@@ -57,15 +55,23 @@ impl Keyring {
 		}
 	}
 
-	/// Creates a [LongCommand] out of a [Keyring] reference and a generic serializable payload.
-	pub fn as_long_command<'a, T: PbCommand>(&'a self, payload: T) -> LongCommand<'a, T> {
-		LongCommand {
+	/// Sends a post request using the struct as the payload. Requires declaring the response generic.
+	pub fn post<R: PbResponse + for<'a> Deserialize<'a>>(
+		&self,
+		agent: &ureq::Agent,
+		endpoint: ureq::http::Uri
+	) -> Result<R, error::ApiError> {
+		_post(self, agent, endpoint)
+	}
+
+	/// Creates a [WithKeyring] out of the [Keyring] and a serializable [PbCommand].
+	pub fn with<'a, T: PbCommand + Serialize>(&'a self, inner: T) -> WithKeyring<'a, T> {
+		WithKeyring {
 			keyring: self,
-			payload
+			inner
 		}
 	}
 }
-impl PbCommand for Keyring {}
 
 /// Contains the recieved error message from the API.
 #[derive(Debug, Deserialize)]
@@ -90,13 +96,22 @@ pub enum ApiResponse<T: PbResponse> {
 
 /// Generic container for API commands utilizing a [Keyring].
 #[derive(Serialize)]
-pub struct LongCommand<'a, T: PbCommand> {
+pub struct WithKeyring<'a, C: PbCommand> {
 	#[serde(flatten)]
 	keyring: &'a Keyring,
 	#[serde(flatten)]
-	payload: T
+	inner: C
 }
-impl<'a, T: PbCommand> PbCommand for LongCommand<'a, T> {}
+impl<'a, C: PbCommand + Serialize> WithKeyring<'a, C> {
+	/// Sends a post request using the struct as the payload. Requires declaring the response generic.
+	pub fn post<R: PbResponse + for<'de> Deserialize<'de>>(
+		&self,
+		agent: &ureq::Agent,
+		endpoint: ureq::http::Uri
+	) -> Result<R, error::ApiError> {
+		_post(self, agent, endpoint)
+	}
+}
 
 /// List of all valid DNS types.
 #[derive(Debug, Deserialize, Serialize, PartialEq, Eq)]

@@ -4,7 +4,7 @@ use thiserror::Error;
 
 use crate::ErrorMessage;
 
-/// Actual error to return when [ApiResponse][crate::response::ApiResponse] returns an error.
+/// Actual error to return when [ApiResponse][crate::ApiResponse] returns an error.
 #[derive(Error, Debug)]
 #[allow(missing_docs)]
 pub struct Error {
@@ -21,10 +21,13 @@ impl std::fmt::Display for Error {
 	}
 }
 
+/// Error returned from library.
 #[derive(Error, Debug)]
 pub enum ApiError {
+	/// Error from the ureq agent.
 	#[error(transparent)]
 	AgentError(#[from] ureq::Error),
+	/// Error from the Porkbun API.
 	#[error(transparent)]
 	ApiError(#[from] Error)
 }
