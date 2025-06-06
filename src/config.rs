@@ -54,7 +54,6 @@ impl<'a> Config<'a> {
 
 #[derive(Debug, Deserialize)]
 pub struct Domain {
-	// pub name: String,
 	pub update_tld: bool,
 	pub subdomains: Vec<String>
 }
