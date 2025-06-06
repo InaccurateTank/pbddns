@@ -11,7 +11,29 @@ mod endpoint;
 pub use endpoint::ApiEndpoint;
 
 /// Marker trait that identifies the struct as a valid API command.
-pub trait PbCommand {}
+pub trait PbCommand {
+	/// Fetches a response from the API.
+	fn get_response<T: PbResponse + for<'a> Deserialize<'a>>(
+		&self,
+		agent: &ureq::Agent,
+		endpoint: ureq::http::Uri
+	) -> Result<T, error::ApiError> where Self: Serialize {
+		let mut response = agent.post(endpoint)
+			.send_json(self)?;
+		match response.body_mut().read_json::<ApiResponse<T>>()? {
+			ApiResponse::Success(t) => Ok(t),
+			ApiResponse::Error(e) =>
+				Err(
+					error::ApiError::ApiError(
+						Error {
+							status: response.status(),
+							error: Some(e)
+						}
+					)
+				)
+		}
+	}
+}
 /// Marker trait that identifies the struct as a valid API response.
 pub trait PbResponse {}
 
@@ -50,6 +72,11 @@ impl PbCommand for Keyring {}
 pub struct ErrorMessage {
 	/// The error message.
 	pub message: String
+}
+impl std::fmt::Display for ErrorMessage {
+	fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+		self.message.fmt(f)
+	}
 }
 
 /// Generic enum for responses from the API.

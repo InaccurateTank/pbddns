@@ -1,5 +1,5 @@
 use std::borrow::Cow;
-use http::Uri;
+use ureq::http::Uri;
 use serde::Deserialize;
 
 /// In order to keep the endpoint list resistent to future changes it will be calculated from a newtype.
