@@ -12,7 +12,7 @@ pub use endpoint::ApiEndpoint;
 
 /// Marker trait that identifies the struct as a valid API command.
 pub trait PbCommand {
-	/// Fetches a response from the API.
+	/// Fetches a response from the API using the command.
 	fn get_response<T: PbResponse + for<'a> Deserialize<'a>>(
 		&self,
 		agent: &ureq::Agent,
@@ -96,6 +96,7 @@ pub struct LongCommand<'a, T: PbCommand> {
 	#[serde(flatten)]
 	payload: T
 }
+impl<'a, T: PbCommand> PbCommand for LongCommand<'a, T> {}
 
 /// List of all valid DNS types.
 #[derive(Debug, Deserialize, Serialize, PartialEq, Eq)]
