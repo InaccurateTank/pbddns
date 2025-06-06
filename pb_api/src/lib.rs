@@ -4,10 +4,11 @@
 use serde::{Deserialize, Serialize};
 
 pub mod commands;
-pub mod error;
-pub mod responses;
 mod endpoint;
 pub use endpoint::ApiEndpoint;
+pub mod error;
+mod helpers;
+pub mod responses;
 
 fn _post<C: Serialize, R: PbResponse + for<'de> Deserialize<'de>>(
 	command: &C,

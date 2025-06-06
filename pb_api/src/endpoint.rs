@@ -21,6 +21,22 @@ impl<'a> ApiEndpoint<'a> {
 		// Frankly if this fails then somthing is deeply wrong
 		format!("{}/ping", self.0).parse().unwrap()
 	}
+
+	/// Retrieve all editable DNS records associated with a domain or a single record for a particular record ID.
+	///
+	/// Returns a [DnsRecordList][crate::responses::DnsRecordList].
+	pub fn records_by_domain_or_id(
+		&self,
+		domain: impl AsRef<str>,
+		id: Option<&'a str>
+	) -> Uri {
+		let mut result = format!("{}/dns/retrieve/{}", self.0, domain.as_ref());
+		if let Some(id) = id {
+			result = format!("{}/{}", result,  id);
+		}
+		// Frankly if this fails then somthing is deeply wrong
+		result.parse().unwrap()
+	}
 }
 impl<'a> std::fmt::Display for ApiEndpoint<'a> {
 	fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {

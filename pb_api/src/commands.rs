@@ -32,7 +32,18 @@ impl<'a> CreateOrEditRecord<'a> {
 			record_type,
 			content: content.into(),
 			ttl: None,
-			prio: Some(0) }
+			prio: None
+		}
+	}
+
+	/// Adds a priority to the record.
+	pub fn with_priority(self, priority: u32) -> Self {
+		Self { prio: Some(priority), ..self }
+	}
+
+	/// Adds a ttl to the record. The mimimum and default is 600.
+	pub fn with_ttl(self, ttl: u64) -> Self {
+		Self { ttl: Some(ttl), ..self}
 	}
 
 	/// Shorthand for using [CreateOrEditRecord::new()] with the type [DnsTypes::A].
