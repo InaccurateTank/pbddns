@@ -19,7 +19,7 @@ pub struct Config<'a> {
 	pub keyring: pb_api::Keyring,
 	pub domains: collections::HashMap<String, DomainConfig>
 }
-impl<'a> Config<'a> {
+impl Config<'_> {
 	pub fn load(
 		path: impl AsRef<std::path::Path>
 	) -> Result<Self> {
