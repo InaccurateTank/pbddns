@@ -16,7 +16,7 @@ impl<'a> ApiEndpoint<'a> {
 
 	/// Endpoint used to test the credentials within a [Keyring][crate::Keyring].
 	///
-	/// Returns the IP address used to make the request.
+	/// Takes a [Keyring][crate::Keyring] and returns a [Ping][crate::responses::Ping].
 	pub fn ping(&self) -> Uri {
 		// Frankly if this fails then somthing is deeply wrong
 		format!("{}/ping", self.0).parse().unwrap()
@@ -24,7 +24,7 @@ impl<'a> ApiEndpoint<'a> {
 
 	/// Retrieve all editable DNS records associated with a domain or a single record for a particular record ID.
 	///
-	/// Returns a [DnsRecordList][crate::responses::DnsRecordList].
+	/// Takes a [Keyring][crate::Keyring] and returns a [DnsRecordList][crate::responses::DnsRecordList].
 	pub fn records_by_domain_or_id(
 		&self,
 		domain: impl AsRef<str>,

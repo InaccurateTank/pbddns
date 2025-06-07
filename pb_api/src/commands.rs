@@ -4,7 +4,7 @@ use std::{borrow::Cow, net::{Ipv4Addr, Ipv6Addr}};
 use serde::Serialize;
 use crate::{PbCommand, DnsTypes};
 
-/// Standard payload for the creation or editing of a single [DnsRecord][crate::response::DnsRecord].
+/// Standard payload for the creation or editing of a single [DnsRecord][crate::responses::DnsRecord].
 #[derive(Debug, Serialize, PartialEq, Eq)]
 pub struct CreateOrEditRecord<'a> {
 	/// The subdomain for the record being created, not including the domain itself. Leave blank to create a record on the root domain. Use * to create a wildcard record.
