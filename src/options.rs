@@ -1,0 +1,28 @@
+use std::path::{PathBuf, MAIN_SEPARATOR_STR};
+use gumdrop::Options;
+
+#[cfg(unix)]
+fn to_pathbuf(s: &str) -> PathBuf {
+	PathBuf::from(s)
+}
+#[cfg(windows)]
+fn to_pathbuf(s: &str) -> PathBuf {
+	PathBuf::from(s.replace("/", MAIN_SEPARATOR_STR))
+}
+
+#[derive(Debug, Options)]
+pub struct Opts {
+	pub help: bool,
+	#[options(help = "The path to the configuration file.", default = "data/config.toml", parse(from_str = "to_pathbuf"))]
+	pub config: PathBuf,
+	#[options(help = "Use detailed logging")]
+	pub verbose: bool
+}
+
+impl Opts {
+	/// Thin wrapper around [parse_args_default_or_exit][gumdrop::Options::parse_args_default_or_exit()]
+	pub fn parse() -> Self {
+		let res = Opts::parse_args_default_or_exit();
+		res
+	}
+}
