@@ -17,7 +17,7 @@ pub struct Config<'a> {
 	pub endpoint: pb_api::ApiEndpoint<'a>,
 	#[serde(flatten)]
 	pub keyring: pb_api::Keyring,
-	pub domains: collections::HashMap<String, Domain>
+	pub domains: collections::HashMap<String, DomainConfig>
 }
 impl<'a> Config<'a> {
 	pub fn load(
@@ -53,7 +53,7 @@ impl<'a> Config<'a> {
 }
 
 #[derive(Debug, Deserialize)]
-pub struct Domain {
+pub struct DomainConfig {
 	pub update_tld: bool,
 	pub subdomains: Vec<String>
 }
