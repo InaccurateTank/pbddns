@@ -37,8 +37,8 @@ impl<'a> CreateOrEditRecord<'a> {
 	}
 
 	/// Adds a priority to the record.
-	pub fn with_priority(self, priority: u32) -> Self {
-		Self { prio: Some(priority), ..self }
+	pub fn with_priority(self, prio: Option<u32>) -> Self {
+		Self { prio, ..self }
 	}
 
 	/// Adds a ttl to the record. The mimimum and default is 600.

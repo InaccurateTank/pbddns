@@ -29,8 +29,8 @@ pub struct DnsRecord {
 	#[serde(deserialize_with = "helpers::string_to_u64")]
 	pub ttl: u64,
 	/// The priority of the record.
-	#[serde(deserialize_with = "helpers::string_to_u32")]
-	pub prio: u32,
+	#[serde(deserialize_with = "helpers::string_to_optional_u32")]
+	pub prio: Option<u32>,
 	/// Any notes that have been added to the record on the web panel.
 	pub notes: Option<String>,
 }

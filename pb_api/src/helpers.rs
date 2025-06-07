@@ -12,13 +12,16 @@ where
 	}
 }
 
-pub(crate) fn string_to_u32<'de, D>(deserializer: D) -> Result<u32, D::Error>
+pub(crate) fn string_to_optional_u32<'de, D>(deserializer: D) -> Result<Option<u32>, D::Error>
 where
 	D: Deserializer<'de>
 {
 	let buf = Option::<String>::deserialize(deserializer)?;
 	match buf {
-		Some(s) => u32::from_str(&s).map_err(serde::de::Error::custom),
-		None => Ok(0)
+		Some(s) => {
+			let res = u32::from_str(&s).map_err(serde::de::Error::custom)?;
+			Ok(Some(res))
+		},
+		None => Ok(None)
 	}
 }
