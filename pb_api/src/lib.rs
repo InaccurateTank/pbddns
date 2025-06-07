@@ -2,6 +2,7 @@
 //! This crate provibes structs to be used as a framework for accessing the [porkbun](https://porkbun.com) API.
 
 use serde::{Deserialize, Serialize};
+use ureq::http::StatusCode;
 
 pub mod commands;
 mod endpoint;
@@ -10,31 +11,39 @@ pub mod error;
 mod helpers;
 pub mod responses;
 
-fn _post<C: Serialize, R: PbResponse + for<'de> Deserialize<'de>>(
-	command: &C,
+fn _post<C: Serialize, R: for<'de> Deserialize<'de>>(
+	cmd: &C,
 	agent: &ureq::Agent,
 	endpoint: ureq::http::Uri
 ) -> Result<R, error::ApiError> {
-	let mut response = agent.post(endpoint)
-		.send_json(command)?;
-	match response.body_mut().read_json::<ApiResponse<R>>()? {
-		ApiResponse::Success(t) => Ok(t),
-		ApiResponse::Error(e) =>
+	let (head, mut body) = agent.post(endpoint)
+		.send_json(cmd)?
+		.into_parts();
+	let result = body.read_json::<ApiResponse<_>>()?;
+
+	match (head.status, result) {
+		(StatusCode::OK, ApiResponse::Success(x)) => Ok(x),
+		(status, ApiResponse::Error(e)) => {
 			Err(
-				error::ApiError::ApiError(
-					error::Error {
-						status: response.status(),
-						error: Some(e)
-					}
-				)
+				error::PbError {
+					status,
+					error: Some(e)
+				}.into()
 			)
+		},
+		(status, _) => {
+			Err(
+				error::PbError {
+					status,
+					error: None
+				}.into()
+			)
+		}
 	}
 }
 
 /// Marker trait that identifies the struct as a valid API command.
 pub trait PbCommand {}
-/// Marker trait that identifies the struct as a valid API response.
-pub trait PbResponse {}
 
 /// Holds the credentials used to access the API.
 ///
@@ -56,8 +65,8 @@ impl Keyring {
 		}
 	}
 
-	/// Sends a post request using the struct as the payload. Requires declaring the response generic.
-	pub fn post<R: PbResponse + for<'a> Deserialize<'a>>(
+	/// Sends a post request using the [Keyring] as the payload. Requires declaring the response generic.
+	pub fn post<R: for<'a> Deserialize<'a>>(
 		&self,
 		agent: &ureq::Agent,
 		endpoint: ureq::http::Uri
@@ -65,34 +74,19 @@ impl Keyring {
 		_post(self, agent, endpoint)
 	}
 
-	/// Creates a [WithKeyring] out of the [Keyring] and a serializable [PbCommand].
-	pub fn with<'a, T: PbCommand + Serialize>(&'a self, inner: T) -> WithKeyring<'a, T> {
-		WithKeyring {
+	/// Creates a [WithKeyring] to use as the the payload. Requires declaring the command and response generic.
+	pub fn post_with<'a, C: PbCommand + Serialize, R: for<'de> Deserialize<'de>>(
+		&'a self,
+		inner: C,
+		agent: &ureq::Agent,
+		endpoint: ureq::http::Uri
+	) -> Result<R, error::ApiError> {
+		let cmd = WithKeyring {
 			keyring: self,
 			inner
-		}
+		};
+		_post(&cmd, agent, endpoint)
 	}
-}
-
-/// Contains the recieved error message from the API.
-#[derive(Debug, Deserialize)]
-pub struct ErrorMessage {
-	/// The error message.
-	pub message: String
-}
-impl std::fmt::Display for ErrorMessage {
-	fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-		self.message.fmt(f)
-	}
-}
-
-/// Generic enum for responses from the API.
-#[derive(Debug, Deserialize)]
-#[allow(missing_docs)]
-#[serde(tag = "status", rename_all = "UPPERCASE")]
-pub enum ApiResponse<T: PbResponse> {
-	Success(T),
-	Error(ErrorMessage)
 }
 
 /// Generic container for API commands utilizing a [Keyring].
@@ -103,14 +97,33 @@ pub struct WithKeyring<'a, C: PbCommand> {
 	#[serde(flatten)]
 	inner: C
 }
-impl<'a, C: PbCommand + Serialize> WithKeyring<'a, C> {
-	/// Sends a post request using the struct as the payload. Requires declaring the response generic.
-	pub fn post<R: PbResponse + for<'de> Deserialize<'de>>(
-		&self,
-		agent: &ureq::Agent,
-		endpoint: ureq::http::Uri
-	) -> Result<R, error::ApiError> {
-		_post(self, agent, endpoint)
+
+/// Contains the recieved error message from the API.
+#[derive(Debug, Deserialize)]
+pub struct ApiErrorMessage {
+	/// The error message.
+	pub message: String
+}
+impl std::fmt::Display for ApiErrorMessage {
+	fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+		self.message.fmt(f)
+	}
+}
+
+/// Generic enum for responses from the API.
+#[derive(Debug, Deserialize)]
+#[allow(missing_docs)]
+#[serde(tag = "status", rename_all = "UPPERCASE")]
+pub enum ApiResponse<T> {
+	Success(T),
+	Error(ApiErrorMessage)
+}
+impl<T> From<ApiResponse<T>> for std::result::Result<T, ApiErrorMessage> {
+	fn from(value: ApiResponse<T>) -> Self {
+		match value {
+			ApiResponse::Success(s) => Ok(s),
+			ApiResponse::Error(e) => Err(e),
+		}
 	}
 }
 

@@ -37,6 +37,18 @@ impl<'a> ApiEndpoint<'a> {
 		// Frankly if this fails then somthing is deeply wrong
 		result.parse().unwrap()
 	}
+
+	/// Edits a DNS record based on the supplied domain and ID
+	///
+	/// Takes a [WithKeyring][crate::WithKeyring] containing a [CreateOrEditRecord][crate::commands::CreateOrEditRecord].
+ 	pub fn edit_by_domain_and_id(
+		&self,
+		domain: impl AsRef<str>,
+		id: impl AsRef<str>
+	) -> Uri {
+		// Frankly if this fails then somthing is deeply wrong
+		format!("{}/dns/edit/{}/{}", self.0, domain.as_ref(), id.as_ref()).parse().unwrap()
+	}
 }
 impl<'a> std::fmt::Display for ApiEndpoint<'a> {
 	fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {

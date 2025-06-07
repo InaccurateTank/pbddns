@@ -1,17 +1,16 @@
 //! Errors and error handling QOL.
 
 use thiserror::Error;
-
-use crate::ErrorMessage;
+use crate::ApiErrorMessage;
 
 /// Actual error to return when [ApiResponse][crate::ApiResponse] returns an error.
 #[derive(Error, Debug)]
 #[allow(missing_docs)]
-pub struct Error {
+pub struct PbError {
 	pub status: ureq::http::StatusCode,
-	pub error: Option<ErrorMessage>
+	pub error: Option<ApiErrorMessage>
 }
-impl std::fmt::Display for Error {
+impl std::fmt::Display for PbError {
 	fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
 		if let Some(error) = &self.error {
 			write!(f, "{}: {}", self.status, error)
@@ -29,5 +28,5 @@ pub enum ApiError {
 	AgentError(#[from] ureq::Error),
 	/// Error from the Porkbun API.
 	#[error(transparent)]
-	ApiError(#[from] Error)
+	PbError(#[from] PbError)
 }

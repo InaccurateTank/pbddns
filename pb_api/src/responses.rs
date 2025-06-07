@@ -2,7 +2,7 @@
 
 use std::net::IpAddr;
 use serde::Deserialize;
-use crate::{DnsTypes, PbResponse, helpers};
+use crate::{DnsTypes, helpers};
 
 /// Ping authentication testing endpoint response.
 #[derive(Debug, Deserialize)]
@@ -11,7 +11,6 @@ pub struct Ping {
 	#[serde(rename = "yourIp")]
 	pub ip: IpAddr
 }
-impl PbResponse for Ping {}
 
 /// A single DNS record as returned by the API.
 #[derive(Debug, Deserialize)]
@@ -35,7 +34,6 @@ pub struct DnsRecord {
 	/// Any notes that have been added to the record on the web panel.
 	pub notes: Option<String>,
 }
-impl PbResponse for DnsRecord {}
 
 /// DNS record retrieval response.
 #[derive(Debug, Deserialize)]
@@ -43,4 +41,3 @@ pub struct DnsRecordList {
 	/// The list of DNS records
 	pub records: Vec<DnsRecord>
 }
-impl PbResponse for DnsRecordList {}

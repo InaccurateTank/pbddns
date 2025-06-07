@@ -8,3 +8,9 @@ pub enum ConfigError {
 		source: std::io::Error
 	}
 }
+
+#[derive(Error, Debug)]
+pub enum Error {
+	#[error("One or more subdomains are missing from Porkbun: {0:?}")]
+	MissingSubdomains(Vec<String>)
+}
