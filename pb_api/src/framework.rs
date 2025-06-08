@@ -3,6 +3,8 @@ use ureq::http::{StatusCode, Uri};
 use crate::{commands, error, responses, ApiEndpoint, ApiResponse, Keyring};
 
 /// Utilizes an [Agent][ureq::Agent], an [ApiEndpoint], and a [Keyring] in order to make safe requests to the Porkbun API.
+///
+/// Note that the framework steals the command names from [ApiEndpoint].
 pub struct Framework<'a> {
 	client: &'a ureq::Agent,
 	endpoint: ApiEndpoint<'a>,
