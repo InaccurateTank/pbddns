@@ -1,186 +1,87 @@
-use gumdrop::Options;
+use std::{collections::HashMap, net::IpAddr};
+use color_eyre::{Result, Section};
+use pb_api::{commands, responses};
 
-mod command;
-mod response;
-mod config;
+mod error;
+mod structs;
 
-pub type Error = Box<dyn std::error::Error>;
+fn main() -> Result<()> {
+	color_eyre::install()?;
 
-pub fn concat(a: &str, b: &str) -> String {
-  let mut result: String = String::with_capacity(a.len() + b.len());
-  result += a;
-  result += b;
-  result
-}
-
-#[derive(Debug, Options)]
-pub struct Opts {
-	help: bool,
-	#[options(help = "Set data folder location", default = "data/")]
-	data: String,
-	#[options(help = "Use detailed logging")]
-	verbose: bool
-}
-
-#[derive(Debug)]
-pub enum Status {
-	Change,
-	Skip,
-	Error
-}
-
-fn main() -> Result<(), Error> {
 	// Opts
-	let opts = Opts::parse_args_default_or_exit();
-
-	// Data Folder From Opts
-	let data_folder = if !opts.data.ends_with('/') {
-		concat(&opts.data, "/")
-	} else {
-		opts.data
-	};
+	let opts = structs::Opts::parse();
 
 	// Final preperations
-	let config = match config::Config::new(&data_folder) {
-		Ok(cfg) => cfg,
-		Err(e) => {
-			// Quit early if config errors.
-			println!("{}", e);
-			return Ok(())
-		}
+	let config = structs::config::Config::load(opts.config)?;
+
+	// Construct an agent
+	let agent = ureq::Agent::config_builder()
+		.timeout_global(Some(std::time::Duration::from_secs(5)))
+		.http_status_as_error(false)
+		.build()
+		.new_agent();
+
+	// Fetch ip from API for comparison.
+	let ip = config.keyring.post::<responses::Ping>(
+		&agent,
+		config.endpoint.ping()
+	)?.ip;
+
+	// Status tracker
+	let mut tracker = structs::CommandStatus::new();
+	// Closure for command creation based on ip type
+	// The API has the magic ability to swap an entries record type. So lets do that!
+	let record_command: Box<dyn Fn(&Option<String>) -> commands::CreateOrEditRecord> = match ip {
+		IpAddr::V4(ip) => Box::new(move |sub| commands::CreateOrEditRecord::new_a(sub.as_deref(), ip)),
+		IpAddr::V6(ip) => Box::new(move |sub| commands::CreateOrEditRecord::new_aaaa(sub.as_deref(), ip))
 	};
-  let client = reqwest::blocking::Client::new();
-
-	// Fetch current client IP
-	let ip: String;
-	match client.post("https://api.porkbun.com/api/json/v3/ping")
-		.json(&command::Key{
-			apikey: config.apikey.clone(),
-			secretapikey: config.secretapikey.clone()
-		})
-		.send()?
-		.json::<response::Ping>()? {
-		response::Ping::Success { your_ip } => {
-			ip = your_ip;
-		},
-		response::Ping::Error(e) => {
-			return Err(Error::from(e.message))
-		}
-	};
-
-	for domain in &config.domains {
-		// Verbose printing
-		if opts.verbose {println!("Now updating domain: \"{}\"", &domain.name)}
-
-		// Array for tracking changes. Stored in order of Changed/Skip/Error
-		let mut change: [i8; 3] = [0,0,0];
-
-		// Fetch the list of records from Porkbun and start working on them.
-		match client.post(format!("https://api.porkbun.com/api/json/v3/dns/retrieve/{}", domain.name))
-			.json(&command::Key{
-				apikey: config.apikey.clone(),
-				secretapikey: config.secretapikey.clone()
+	// Actual DDNS work
+	for (tld, mut domain_config) in config.domains {
+		let records: HashMap<Option<String>, responses::DnsRecord> = config.keyring.post::<responses::DnsRecordList>(
+			&agent,
+			config.endpoint.records_by_domain_or_id(&tld, None)
+		)?
+			.records
+			.into_iter()
+			.filter_map(|f| {
+				if domain_config.update_tld && f.name == tld {
+					return Some((None, f))
+				}
+				if let Some(index) = domain_config.subdomains.iter().position(|x| f.name.starts_with(x)) {
+					return Some((Some(domain_config.subdomains.swap_remove(index)), f))
+				}
+				None
 			})
-			.send()?
-			.json::<response::Records>()? {
-			response::Records::Success { records } => {
-				// Filter list of records down to what we actually need
-				let list: Vec<response::Record> = records.into_iter()
-					.filter(|r| {
-						r.name.ends_with(&domain.name) && r.rec_type == "A"
-					}).collect();
+			.collect();
 
-				let a: String = "Test".to_string();
-				a.ends_with("Test");
+		// If the subdomain list is not empty then a record is missing. Best to just error this.
+		if !domain_config.subdomains.is_empty() {
+			return Err(error::Error::MissingSubdomains(domain_config.subdomains))
+				.suggestion("Double check the spelling and existance of the subdomain.")
+		}
 
-				// Update TLD if set to do so
-				if domain.update_tld {
-					match list.iter().find(|x| x.name == domain.name) {
-						Some(r) => {
-							// Run update function
-							match update(&domain.name, "", r, &ip, &client, &config, opts.verbose)? {
-								Status::Change => {
-									change[0] += 1;
-								},
-								Status::Skip => {
-									change[1] += 1;
-								},
-								Status::Error => {
-									change[2] += 1;
-								}
-							}
-						},
-						None => {
-							// Error if no record exists
-							change[2] += 1;
-							if opts.verbose {println!("Record \"{}\" does not exist", &domain.name)}
-						}
-					}
-				}
-
-				// Iterate through subdomains and find the record for each
-				for s in &domain.subdomains {
-					match list.iter().find(|x| x.name == format!("{s}.{}", domain.name)) {
-						Some(r) => {
-							// Run update function
-							match update(&domain.name, s, r, &ip, &client, &config, opts.verbose)? {
-								Status::Change => {
-									change[0] += 1;
-								},
-								Status::Skip => {
-									change[1] += 1;
-								},
-								Status::Error => {
-									change[2] += 1;
-								}
-							}
-						},
-						None => {
-							// Error if no record exists
-							change[2] += 1;
-							if opts.verbose {println!("Record \"{}.{}\" does not exist", s, &domain.name)}
-						}
-					}
-				}
-				println!("Updated domain records for \"{}\": {} Changed, {} Skipped, {} Errored", domain.name, change[0], change[1], change[2])
-			},
-			response::Records::Error(e) => {
-				println!("Failed to update domain \"{}\": {}", domain.name, e.message)
+		for (subdomain, record) in records {
+			if record.record_type != pb_api::DnsTypes::A && record.record_type != pb_api::DnsTypes::AAAA {
+				tracker.add_errored();
+				println!("Entry {} is not an A/AAAA record. Unsafe to change.", record.name);
+				continue;
+			}
+			let cmd = record_command(&subdomain)
+				.with_priority(record.prio)
+				.with_ttl(record.ttl);
+			if cmd.content == record.content {
+				tracker.add_skipped();
+				println!("Skipping record {}: Identical IPs", record.name);
+				continue;
+			}
+			if let Err(e) = config.keyring.post_with::<_, ()>(cmd, &agent, config.endpoint.edit_by_domain_and_id(&tld, record.id)) {
+				tracker.add_errored();
+				println!("{}", e);
+			} else {
+				tracker.add_changed();
 			}
 		}
 	}
+	println!("All records updated: {tracker}");
   Ok(())
-}
-
-fn update(tld: &str, sub: &str, record: &response::Record, ip: &str, client: &reqwest::blocking::Client, config: &config::Config, verbose: bool) -> Result<Status, Error> {
-	// Record, Client, Config, Opts
-	if record.content != ip {
-		match client.post(format!("https://api.porkbun.com/api/json/v3/dns/edit/{}/{}", tld, record.id))
-			.json(&command::Edit {
-				apikey: config.apikey.clone(),
-				secretapikey: config.secretapikey.clone(),
-				rec_type: record.rec_type.clone(),
-				name: sub.to_string(),
-				content: ip.to_string(),
-				ttl: record.ttl.clone().unwrap_or("600".to_string()),
-				prio: record.prio.clone()
-			})
-			.send()?
-			.json::<response::Edit>()? {
-			response::Edit::Success => {
-				// Record has been changed
-				if verbose {println!("Record \"{}\" successfully updated", record.name)}
-				Ok(Status::Change)
-			},
-			response::Edit::Error(e) => {
-				// Error if record can't be changed
-				if verbose {println!("Record \"{}\" failed to update: {}", record.name, e.message)}
-				Ok(Status::Error)
-			}
-		}
-	} else {
-		// Skip
-		if verbose {println!("Record \"{}\" skipped", record.name)}
-		Ok(Status::Skip)
-	}
 }
