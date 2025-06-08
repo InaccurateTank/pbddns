@@ -2,6 +2,7 @@
 name = "pbddns"
 version = "0.4.0"
 edition = "2024"
+publish = false
 
 [dependencies]
 color-eyre = { version = "0.6" }
@@ -15,7 +16,6 @@ ureq.workspace = true
 pb_api = { path = "pb_api" }
 
 [workspace]
-publish = false
 members = ["pb_api"]
 
 [workspace.dependencies]
