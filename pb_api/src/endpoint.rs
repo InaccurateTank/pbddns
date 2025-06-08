@@ -44,10 +44,10 @@ impl<'a> ApiEndpoint<'a> {
  	pub fn edit_by_domain_and_id(
 		&self,
 		domain: impl AsRef<str>,
-		id: impl AsRef<str>
+		id: u64
 	) -> Uri {
 		// Frankly if this fails then somthing is deeply wrong
-		format!("{}/dns/edit/{}/{}", self.0, domain.as_ref(), id.as_ref()).parse().unwrap()
+		format!("{}/dns/edit/{}/{}", self.0, domain.as_ref(), id).parse().unwrap()
 	}
 }
 impl<'a> std::fmt::Display for ApiEndpoint<'a> {
