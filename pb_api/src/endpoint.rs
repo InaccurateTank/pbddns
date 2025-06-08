@@ -28,7 +28,7 @@ impl<'a> ApiEndpoint<'a> {
 	pub fn records_by_domain_or_id(
 		&self,
 		domain: impl AsRef<str>,
-		id: Option<&'a str>
+		id: Option<&'a u64>
 	) -> Uri {
 		let mut result = format!("{}/dns/retrieve/{}", self.0, domain.as_ref());
 		if let Some(id) = id {

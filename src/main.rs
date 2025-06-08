@@ -17,7 +17,6 @@ fn main() -> Result<()> {
 	// Construct an agent using a config
 	let mut agent_config = ureq::Agent::config_builder()
 		.timeout_global(Some(std::time::Duration::from_secs(5)))
-		.http_status_as_error(false)
 		.https_only(true);
 	if opts.forcev4 {
 		agent_config = agent_config.ip_family(ureq::config::IpFamily::Ipv4Only)
@@ -25,11 +24,11 @@ fn main() -> Result<()> {
 	let agent = agent_config.build()
 		.new_agent();
 
+	// Create a API framework
+	let framework = pb_api::Framework::new(config.endpoint, &agent, config.keyring);
+
 	// Fetch ip from API for comparison.
-	let ip = config.keyring.post::<responses::Ping>(
-		&agent,
-		config.endpoint.ping()
-	)?.ip;
+	let ip = framework.ping()?.ip;
 
 	// Status tracker
 	let mut tracker = structs::CommandStatus::new();
@@ -41,10 +40,7 @@ fn main() -> Result<()> {
 	};
 	// Actual DDNS work
 	for (tld, mut domain_config) in config.domains {
-		let records: HashMap<Option<String>, responses::DnsRecord> = config.keyring.post::<responses::DnsRecordList>(
-			&agent,
-			config.endpoint.records_by_domain_or_id(&tld, None)
-		)?
+		let records: HashMap<Option<String>, responses::DnsRecord> = framework.records_by_domain_or_id(&tld, None)?
 			.records
 			.into_iter()
 			.filter_map(|f| {
@@ -78,7 +74,7 @@ fn main() -> Result<()> {
 				println!("Skipping record - Identical IPs: {}", record.name);
 				continue;
 			}
-			if let Err(e) = config.keyring.post_with::<_, ()>(cmd, &agent, config.endpoint.edit_by_domain_and_id(&tld, record.id)) {
+			if let Err(e) = framework.edit_by_domain_and_id(&tld, record.id, cmd) {
 				tracker.add_errored();
 				println!("{}", e);
 			} else {

@@ -2,45 +2,15 @@
 //! This crate provibes structs to be used as a framework for accessing the [porkbun](https://porkbun.com) API.
 
 use serde::{Deserialize, Serialize};
-use ureq::http::StatusCode;
 
 pub mod commands;
 mod endpoint;
 pub use endpoint::ApiEndpoint;
 pub mod error;
+mod framework;
+pub use framework::Framework;
 mod helpers;
 pub mod responses;
-
-fn _post<C: Serialize, R: for<'de> Deserialize<'de>>(
-	cmd: &C,
-	agent: &ureq::Agent,
-	endpoint: ureq::http::Uri
-) -> Result<R, error::Error> {
-	let (head, mut body) = agent.post(endpoint)
-		.send_json(cmd)?
-		.into_parts();
-	let result = body.read_json::<ApiResponse<_>>()?;
-
-	match (head.status, result) {
-		(StatusCode::OK, ApiResponse::Success(x)) => Ok(x),
-		(status, ApiResponse::Error(e)) => {
-			Err(
-				error::ApiError {
-					status,
-					error: Some(e)
-				}.into()
-			)
-		},
-		(status, _) => {
-			Err(
-				error::ApiError {
-					status,
-					error: None
-				}.into()
-			)
-		}
-	}
-}
 
 /// Marker trait that identifies the struct as a valid API command.
 pub trait ApiCommand {}
@@ -65,27 +35,15 @@ impl Keyring {
 		}
 	}
 
-	/// Sends a post request using the [Keyring] as the payload. Requires declaring the response generic.
-	pub fn post<R: for<'a> Deserialize<'a>>(
-		&self,
-		agent: &ureq::Agent,
-		endpoint: ureq::http::Uri
-	) -> Result<R, error::Error> {
-		_post(self, agent, endpoint)
-	}
-
-	/// Creates a [WithKeyring] to use as the the payload. Requires declaring the command and response generic.
-	pub fn post_with<'a, C: ApiCommand + Serialize, R: for<'de> Deserialize<'de>>(
+	/// Creates a [WithKeyring] to use as the the payload.
+	pub fn with<'a, C: ApiCommand + Serialize>(
 		&'a self,
-		inner: C,
-		agent: &ureq::Agent,
-		endpoint: ureq::http::Uri
-	) -> Result<R, error::Error> {
-		let cmd = WithKeyring {
+		inner: C
+	) -> WithKeyring<'a, C> {
+		WithKeyring {
 			keyring: self,
 			inner
-		};
-		_post(&cmd, agent, endpoint)
+		}
 	}
 }
 

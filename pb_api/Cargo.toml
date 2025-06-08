@@ -7,4 +7,4 @@ publish = false
 [dependencies]
 serde.workspace = true
 thiserror.workspace = true
-ureq.workspace = true
+ureq = { workspace = true, features = ["json"] }
