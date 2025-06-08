@@ -63,7 +63,7 @@ fn main() -> Result<()> {
 		for (subdomain, record) in records {
 			if record.record_type != pb_api::DnsTypes::A && record.record_type != pb_api::DnsTypes::AAAA {
 				tracker.add_errored();
-				println!("Entry {} is not an A/AAAA record. Unsafe to change.", record.name);
+				println!("Record is not an A/AAAA record, unsafe to change: {}", record.name);
 				continue;
 			}
 			let cmd = record_command(&subdomain)
@@ -71,13 +71,14 @@ fn main() -> Result<()> {
 				.with_ttl(record.ttl);
 			if cmd.content == record.content {
 				tracker.add_skipped();
-				println!("Skipping record {}: Identical IPs", record.name);
+				println!("Skipping record - Identical IPs: {}", record.name);
 				continue;
 			}
 			if let Err(e) = config.keyring.post_with::<_, ()>(cmd, &agent, config.endpoint.edit_by_domain_and_id(&tld, record.id)) {
 				tracker.add_errored();
 				println!("{}", e);
 			} else {
+				println!("Record changed: {}", record.name);
 				tracker.add_changed();
 			}
 		}
