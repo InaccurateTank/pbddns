@@ -14,11 +14,15 @@ fn main() -> Result<()> {
 	// Final preperations
 	let config = structs::config::Config::load(opts.config)?;
 
-	// Construct an agent
-	let agent = ureq::Agent::config_builder()
+	// Construct an agent using a config
+	let mut agent_config = ureq::Agent::config_builder()
 		.timeout_global(Some(std::time::Duration::from_secs(5)))
 		.http_status_as_error(false)
-		.build()
+		.https_only(true);
+	if opts.forcev4 {
+		agent_config = agent_config.ip_family(ureq::config::IpFamily::Ipv4Only)
+	}
+	let agent = agent_config.build()
 		.new_agent();
 
 	// Fetch ip from API for comparison.

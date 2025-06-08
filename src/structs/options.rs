@@ -15,8 +15,10 @@ pub struct Opts {
 	pub help: bool,
 	#[options(help = "The path to the configuration file.", default = "data/config.toml", parse(from_str = "to_pathbuf"))]
 	pub config: PathBuf,
-	#[options(help = "Use detailed logging")]
-	pub verbose: bool
+	#[options(no_long, count, help = "Increase logging verbosity to DEBUG. Repeat once for TRACE data.")]
+	pub verbose: u8,
+	#[options(short = "4", no_long, help = "Whether to force the usage of IPv4.")]
+	pub forcev4: bool
 }
 
 impl Opts {
