@@ -15,7 +15,7 @@ fn _post<C: Serialize, R: for<'de> Deserialize<'de>>(
 	cmd: &C,
 	agent: &ureq::Agent,
 	endpoint: ureq::http::Uri
-) -> Result<R, error::ApiError> {
+) -> Result<R, error::Error> {
 	let (head, mut body) = agent.post(endpoint)
 		.send_json(cmd)?
 		.into_parts();
@@ -25,7 +25,7 @@ fn _post<C: Serialize, R: for<'de> Deserialize<'de>>(
 		(StatusCode::OK, ApiResponse::Success(x)) => Ok(x),
 		(status, ApiResponse::Error(e)) => {
 			Err(
-				error::PbError {
+				error::ApiError {
 					status,
 					error: Some(e)
 				}.into()
@@ -33,7 +33,7 @@ fn _post<C: Serialize, R: for<'de> Deserialize<'de>>(
 		},
 		(status, _) => {
 			Err(
-				error::PbError {
+				error::ApiError {
 					status,
 					error: None
 				}.into()
@@ -43,7 +43,7 @@ fn _post<C: Serialize, R: for<'de> Deserialize<'de>>(
 }
 
 /// Marker trait that identifies the struct as a valid API command.
-pub trait PbCommand {}
+pub trait ApiCommand {}
 
 /// Holds the credentials used to access the API.
 ///
@@ -70,17 +70,17 @@ impl Keyring {
 		&self,
 		agent: &ureq::Agent,
 		endpoint: ureq::http::Uri
-	) -> Result<R, error::ApiError> {
+	) -> Result<R, error::Error> {
 		_post(self, agent, endpoint)
 	}
 
 	/// Creates a [WithKeyring] to use as the the payload. Requires declaring the command and response generic.
-	pub fn post_with<'a, C: PbCommand + Serialize, R: for<'de> Deserialize<'de>>(
+	pub fn post_with<'a, C: ApiCommand + Serialize, R: for<'de> Deserialize<'de>>(
 		&'a self,
 		inner: C,
 		agent: &ureq::Agent,
 		endpoint: ureq::http::Uri
-	) -> Result<R, error::ApiError> {
+	) -> Result<R, error::Error> {
 		let cmd = WithKeyring {
 			keyring: self,
 			inner
@@ -91,7 +91,7 @@ impl Keyring {
 
 /// Generic container for API commands utilizing a [Keyring].
 #[derive(Serialize)]
-pub struct WithKeyring<'a, C: PbCommand> {
+pub struct WithKeyring<'a, C: ApiCommand> {
 	#[serde(flatten)]
 	keyring: &'a Keyring,
 	#[serde(flatten)]

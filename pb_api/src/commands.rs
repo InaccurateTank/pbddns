@@ -2,7 +2,7 @@
 
 use std::{borrow::Cow, net::{IpAddr, Ipv4Addr, Ipv6Addr}};
 use serde::Serialize;
-use crate::{PbCommand, DnsTypes};
+use crate::{ApiCommand, DnsTypes};
 
 /// Standard payload for the creation or editing of a single [DnsRecord][crate::responses::DnsRecord].
 #[derive(Debug, Serialize, PartialEq, Eq)]
@@ -117,4 +117,4 @@ impl<'a> CreateOrEditRecord<'a> {
 		}
 	}
 }
-impl<'a> PbCommand for CreateOrEditRecord<'a> {}
+impl<'a> ApiCommand for CreateOrEditRecord<'a> {}
