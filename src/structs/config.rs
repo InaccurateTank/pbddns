@@ -1,6 +1,7 @@
 use std::{collections, fs, io};
 use color_eyre::{Result, Section};
 use serde::Deserialize;
+use tracing::{debug, instrument};
 use crate::error::ConfigError;
 
 const DEFAULT_CONFIG: &str = r##"endpoint = "https://api.porkbun.com/api/json/v3"
@@ -20,18 +21,24 @@ pub struct Config<'a> {
 	pub domains: collections::HashMap<String, DomainConfig>
 }
 impl Config<'_> {
+	#[instrument]
 	pub fn load(
-		path: impl AsRef<std::path::Path>
+		path: impl AsRef<std::path::Path> + std::fmt::Debug
 	) -> Result<Self> {
 		let config_path = path.as_ref();
 		match fs::read_to_string(config_path) {
-			Ok(file) => Ok(toml::from_str(&file)?),
+			Ok(file) => {
+				debug!("Successfully loaded configuration from file.");
+				Ok(toml::from_str(&file)?)
+			},
 			Err(e) => {
 				let generated: Result<bool, io::Error> = if e.kind() == io::ErrorKind::NotFound {
 					if let Some(folder) = config_path.parent() {
 						fs::create_dir_all(folder)?;
+						debug!("Created config file parent directories.");
 					}
 					fs::write(config_path, DEFAULT_CONFIG)?;
+					debug!("Generated default configuration file.");
 					Ok(true)
 				} else {
 					Ok(false)
