@@ -76,6 +76,6 @@ impl<'a> Framework<'a> {
 		id: u64,
 		cmd: commands::CreateOrEditRecord
 	) -> Result<(), error::Error> {
-		self.post(self.endpoint.edit_by_domain_and_id(domain, id), &self.keyring.with(cmd))
+		self.post(self.endpoint.edit_by_domain_and_id(domain, id), self.keyring.with(cmd))
 	}
 }

@@ -3,7 +3,7 @@ use color_eyre::{Result, Section};
 use serde::Deserialize;
 use crate::error::ConfigError;
 
-const DEFAULT_CONFIG: &'static str = r##"endpoint = "https://api.porkbun.com/api/json/v3"
+const DEFAULT_CONFIG: &str = r##"endpoint = "https://api.porkbun.com/api/json/v3"
 apikey = ""
 secretapikey = ""
 

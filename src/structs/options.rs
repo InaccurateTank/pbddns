@@ -24,7 +24,6 @@ pub struct Opts {
 impl Opts {
 	/// Thin wrapper around [parse_args_default_or_exit][gumdrop::Options::parse_args_default_or_exit()]
 	pub fn parse() -> Self {
-		let res = Opts::parse_args_default_or_exit();
-		res
+		Opts::parse_args_default_or_exit()
 	}
 }

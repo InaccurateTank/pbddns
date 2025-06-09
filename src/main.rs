@@ -6,6 +6,8 @@ use tracing::{debug, error, info, instrument};
 mod error;
 mod structs;
 
+type CmdGenerator = Box<dyn Fn(&Option<String>) -> commands::CreateOrEditRecord>;
+
 #[instrument]
 fn main() -> Result<()> {
 	color_eyre::install()?;
@@ -39,7 +41,7 @@ fn main() -> Result<()> {
 	let mut tracker = structs::CommandStatus::new();
 	// Closure for command creation based on ip type
 	// The API has the magic ability to swap an entries record type. So lets do that!
-	let record_command: Box<dyn Fn(&Option<String>) -> commands::CreateOrEditRecord> = match ip {
+	let record_command: CmdGenerator = match ip {
 		IpAddr::V4(ip) => Box::new(move |sub| commands::CreateOrEditRecord::new_a(sub.as_deref(), ip)),
 		IpAddr::V6(ip) => Box::new(move |sub| commands::CreateOrEditRecord::new_aaaa(sub.as_deref(), ip))
 	};
