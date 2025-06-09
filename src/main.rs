@@ -1,15 +1,20 @@
 use std::{collections::HashMap, net::IpAddr};
 use color_eyre::{Result, Section};
 use pb_api::{commands, responses};
+use tracing::{debug, error, info, instrument};
 
 mod error;
 mod structs;
 
+#[instrument]
 fn main() -> Result<()> {
 	color_eyre::install()?;
 
 	// Opts
 	let opts = structs::Opts::parse();
+
+	// Install tracing subscriber
+	install_tracing(&opts);
 
 	// Final preperations
 	let config = structs::config::Config::load(opts.config)?;
@@ -61,9 +66,12 @@ fn main() -> Result<()> {
 		}
 
 		for (subdomain, record) in records {
-			if record.record_type != pb_api::DnsTypes::A && record.record_type != pb_api::DnsTypes::AAAA {
+			if record.record_type != pb_api::DnsTypes::A &&
+				record.record_type != pb_api::DnsTypes::AAAA
+			{
+				let e = error::Error::UnsafeRecord(record.name);
 				tracker.add_errored();
-				println!("Record is not an A/AAAA record, unsafe to change: {}", record.name);
+				error!("{e}");
 				continue;
 			}
 			let cmd = record_command(&subdomain)
@@ -71,18 +79,41 @@ fn main() -> Result<()> {
 				.with_ttl(record.ttl);
 			if cmd.content == record.content {
 				tracker.add_skipped();
-				println!("Skipping record - Identical IPs: {}", record.name);
+				debug!("Skipping record - Identical IPs: {}", record.name);
 				continue;
 			}
 			if let Err(e) = framework.edit_by_domain_and_id(&tld, record.id, cmd) {
 				tracker.add_errored();
-				println!("{}", e);
+				error!("{e}");
 			} else {
-				println!("Record changed: {}", record.name);
+				debug!("Record changed: {}", record.name);
 				tracker.add_changed();
 			}
 		}
 	}
-	println!("All records updated: {tracker}");
+	info!("All records updated: {tracker}");
   Ok(())
+}
+
+fn install_tracing(
+	options: &structs::Opts
+) {
+	use tracing::Level;
+	use tracing_error::ErrorLayer;
+	use tracing_subscriber::prelude::*;
+
+	let verbosity = match options.verbose {
+		0 => Level::INFO,
+		1 => Level::DEBUG,
+		_ => Level::TRACE
+	};
+	let fmt_layer = tracing_subscriber::fmt::layer()
+		.with_writer(std::io::stdout.with_max_level(verbosity))
+		.without_time()
+		.with_target(false);
+
+	tracing_subscriber::registry()
+		.with(fmt_layer)
+		.with(ErrorLayer::default())
+		.init();
 }

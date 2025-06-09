@@ -5,7 +5,7 @@ use serde::Deserialize;
 use crate::{DnsTypes, helpers};
 
 /// Ping authentication testing endpoint response.
-#[derive(Debug, Deserialize)]
+#[derive(Deserialize)]
 pub struct Ping {
 	/// The IP used for the command.
 	#[serde(rename = "yourIp")]
@@ -13,7 +13,7 @@ pub struct Ping {
 }
 
 /// A single DNS record as returned by the API.
-#[derive(Debug, Deserialize)]
+#[derive(Deserialize)]
 pub struct DnsRecord {
 	/// The identification number of the record.
 	#[serde(deserialize_with = "helpers::string_to_u64")]
@@ -36,7 +36,7 @@ pub struct DnsRecord {
 }
 
 /// DNS record retrieval response.
-#[derive(Debug, Deserialize)]
+#[derive(Deserialize)]
 pub struct DnsRecordList {
 	/// The list of DNS records
 	pub records: Vec<DnsRecord>

@@ -86,7 +86,7 @@ impl<T> From<ApiResponse<T>> for std::result::Result<T, ApiErrorMessage> {
 }
 
 /// List of all valid DNS types.
-#[derive(Debug, Deserialize, Serialize, PartialEq, Eq)]
+#[derive(Deserialize, Serialize, PartialEq, Eq)]
 pub enum DnsTypes {
 	/// Address Record
 	A,

@@ -12,5 +12,7 @@ pub enum ConfigError {
 #[derive(Error, Debug)]
 pub enum Error {
 	#[error("One or more subdomains are missing from Porkbun: {0:?}")]
-	MissingSubdomains(Vec<String>)
+	MissingSubdomains(Vec<String>),
+	#[error("Record is not an A/AAAA record and is thus unsafe to edit: {0}")]
+	UnsafeRecord(String)
 }

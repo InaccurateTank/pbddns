@@ -1,4 +1,5 @@
 use serde::{Deserialize, Serialize};
+use tracing::instrument;
 use ureq::http::{StatusCode, Uri};
 use crate::{commands, error, responses, ApiEndpoint, ApiResponse, Keyring};
 
@@ -22,6 +23,7 @@ impl<'a> Framework<'a> {
 		}
 	}
 
+	#[instrument(skip(self, cmd))]
 	fn post<C: Serialize, R: for<'de> Deserialize<'de>>(
 		&self,
 		endpoint: Uri,
@@ -31,7 +33,6 @@ impl<'a> Framework<'a> {
 			.send_json(cmd)?
 			.into_parts();
 		let result = body.read_json::<ApiResponse<_>>()?;
-
 		match (head.status, result) {
 			(StatusCode::OK, ApiResponse::Success(x)) => Ok(x),
 			(status, message) => {
@@ -49,6 +50,7 @@ impl<'a> Framework<'a> {
 		}
 	}
 
+	#[instrument(skip(self))]
 	/// Endpoint used to test the credentials within a [Keyring][crate::Keyring].
 	pub fn ping(
 		&self
@@ -56,19 +58,21 @@ impl<'a> Framework<'a> {
 		self.post(self.endpoint.ping(), &self.keyring)
 	}
 
+	#[instrument(skip(self))]
 	/// Retrieve all editable DNS records associated with a domain or a single record for a particular record ID.
 	pub fn records_by_domain_or_id(
 		&self,
-		domain: impl AsRef<str>,
+		domain: impl AsRef<str> + std::fmt::Debug,
 		id: Option<&'a u64>
 	) -> Result<responses::DnsRecordList, error::Error> {
 		self.post(self.endpoint.records_by_domain_or_id(domain, id), &self.keyring)
 	}
 
+	#[instrument(skip(self, cmd))]
 	/// Edits a DNS record based on the supplied domain and ID
 	pub fn edit_by_domain_and_id(
 		&self,
-		domain: impl AsRef<str>,
+		domain: impl AsRef<str> + std::fmt::Debug,
 		id: u64,
 		cmd: commands::CreateOrEditRecord
 	) -> Result<(), error::Error> {
