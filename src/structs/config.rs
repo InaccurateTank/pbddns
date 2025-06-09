@@ -59,7 +59,7 @@ impl Config<'_> {
 	}
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Deserialize)]
 pub struct DomainConfig {
 	pub update_tld: bool,
 	pub subdomains: Vec<String>

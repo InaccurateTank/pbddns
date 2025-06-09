@@ -10,7 +10,7 @@ fn to_pathbuf(s: &str) -> PathBuf {
 	PathBuf::from(s.replace("/", MAIN_SEPARATOR_STR))
 }
 
-#[derive(Debug, Options)]
+#[derive(Options)]
 pub struct Opts {
 	pub help: bool,
 	#[options(help = "The path to the configuration file.", default = "data/config.toml", parse(from_str = "to_pathbuf"))]
