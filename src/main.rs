@@ -65,7 +65,9 @@ fn main() -> Result<()> {
 				.suggestion("Double check the spelling and existance of the subdomain.")
 		}
 
+		// Iterate through subdomains
 		for (subdomain, record) in records {
+			// Check record type before attempting anything
 			if record.record_type != pb_api::DnsTypes::A &&
 				record.record_type != pb_api::DnsTypes::AAAA
 			{
@@ -74,14 +76,17 @@ fn main() -> Result<()> {
 				error!("{e}");
 				continue;
 			}
+			// Create edit command
 			let cmd = record_command(&subdomain)
 				.with_priority(record.prio)
 				.with_ttl(record.ttl);
+			// Compare the source and destination ips
 			if cmd.content == record.content {
 				tracker.add_skipped();
 				debug!("Skipping record - Identical IPs: {}", record.name);
 				continue;
 			}
+			// Error or not?
 			if let Err(e) = framework.edit_by_domain_and_id(&tld, record.id, cmd) {
 				tracker.add_errored();
 				error!("{e}");
