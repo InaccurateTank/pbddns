@@ -46,24 +46,24 @@ fn main() -> Result<()> {
 		IpAddr::V6(ip) => Box::new(move |sub| commands::CreateOrEditRecord::new_aaaa(sub.as_deref(), ip))
 	};
 	// Actual DDNS work
-	for (tld, mut domain_config) in config.domains {
-		let records: HashMap<Option<String>, responses::DnsRecord> = framework.records_by_domain_or_id(&tld, None)?
+	for mut domain in config.domains {
+		let records: HashMap<Option<String>, responses::DnsRecord> = framework.records_by_domain_or_id(&domain.name, None)?
 			.records
 			.into_iter()
 			.filter_map(|f| {
-				if domain_config.update_tld && f.name == tld {
+				if domain.update_tld && f.name == domain.name {
 					return Some((None, f))
 				}
-				if let Some(index) = domain_config.subdomains.iter().position(|x| f.name.starts_with(x)) {
-					return Some((Some(domain_config.subdomains.swap_remove(index)), f))
+				if let Some(index) = domain.subdomains.iter().position(|x| f.name.starts_with(x)) {
+					return Some((Some(domain.subdomains.swap_remove(index)), f))
 				}
 				None
 			})
 			.collect();
 
 		// If the subdomain list is not empty then a record is missing. Best to just error this.
-		if !domain_config.subdomains.is_empty() {
-			return Err(error::Error::MissingSubdomains(domain_config.subdomains))
+		if !domain.subdomains.is_empty() {
+			return Err(error::Error::MissingSubdomains(domain.subdomains))
 				.suggestion("Double check the spelling and existance of the subdomain.")
 		}
 
@@ -89,7 +89,7 @@ fn main() -> Result<()> {
 				continue;
 			}
 			// Error or not?
-			if let Err(e) = framework.edit_by_domain_and_id(&tld, record.id, cmd) {
+			if let Err(e) = framework.edit_by_domain_and_id(&domain.name, record.id, cmd) {
 				tracker.add_errored();
 				error!("{e}");
 			} else {

@@ -18,7 +18,8 @@ pub struct Config<'a> {
 	pub endpoint: pb_api::ApiEndpoint<'a>,
 	#[serde(flatten)]
 	pub keyring: pb_api::Keyring,
-	pub domains: collections::HashMap<String, DomainConfig>
+	#[serde(deserialize_with = "deserialize_domain_configs")]
+	pub domains: Vec<DomainConfig>
 }
 impl Config<'_> {
 	#[instrument]
@@ -28,8 +29,9 @@ impl Config<'_> {
 		let config_path = path.as_ref();
 		match fs::read_to_string(config_path) {
 			Ok(file) => {
+				let res = toml::from_str(&file)?;
 				debug!("Successfully loaded configuration from file.");
-				Ok(toml::from_str(&file)?)
+				Ok(res)
 			},
 			Err(e) => {
 				let generated: Result<bool, io::Error> = if e.kind() == io::ErrorKind::NotFound {
@@ -59,8 +61,48 @@ impl Config<'_> {
 	}
 }
 
-#[derive(Deserialize)]
+fn deserialize_domain_configs<'de, D> (deserializer: D) -> std::result::Result<Vec<DomainConfig>, D::Error>
+where
+	D: serde::Deserializer<'de>
+{
+	use std::fmt::{Formatter};
+	use serde::de::{MapAccess, Visitor};
+
+	struct DomainVisitor {}
+
+	impl<'de> Visitor<'de> for DomainVisitor {
+		type Value = Vec<DomainConfig>;
+
+		fn expecting (&self, formatter: &mut Formatter) -> std::fmt::Result {
+			formatter.write_str("a domainconfig map")
+		}
+
+		fn visit_map<A>(self, mut map: A) -> std::result::Result<Self::Value, A::Error>
+		where
+			A: MapAccess<'de>,
+		{
+			#[derive(Deserialize)]
+			#[allow(unused)]
+			struct DomainConfigFields {
+				ssl: SslConfig,
+				update_tld: bool,
+				subdomains: Vec<String>
+			}
+
+			let mut res = vec![];
+			while let Some((name, fields)) = map.next_entry::<_, DomainConfigFields>()? {
+				res.push(DomainConfig {name, ssl: fields.ssl, update_tld: fields.update_tld, subdomains: fields.subdomains});
+			}
+			Ok(res)
+		}
+	}
+
+	deserializer.deserialize_map(DomainVisitor{})
+}
+
+#[derive(Deserialize, Debug)]
 pub struct DomainConfig {
+	pub name: String,
 	pub update_tld: bool,
 	pub subdomains: Vec<String>
 }
