@@ -18,7 +18,7 @@ pub struct DnsRecord {
 	/// The identification number of the record.
 	#[serde(deserialize_with = "helpers::string_to_u64")]
 	pub id: u64,
-	/// The subdomain name of the DNS record.
+	/// The full name of the DNS record.
 	pub name: String,
 	/// The type of the DNS record. See [DnsTypes] for all valid types.
 	#[serde(rename = "type")]

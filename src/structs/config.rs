@@ -8,8 +8,7 @@ const DEFAULT_CONFIG: &str = r##"endpoint = "https://api.porkbun.com/api/json/v3
 apikey = ""
 secretapikey = ""
 
-[[domains]]
-name = "example.com"
+[domains."example.com"]
 update_tld = false
 subdomains = []"##;
 

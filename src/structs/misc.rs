@@ -4,10 +4,6 @@ pub struct CommandStatus {
 	errored: u8
 }
 impl CommandStatus {
-	pub fn new() -> Self {
-		Self { changed: 0, skipped: 0, errored: 0 }
-	}
-
 	pub fn add_changed(&mut self) {
 		self.changed = self.changed.saturating_add(1)
 	}
@@ -18,6 +14,11 @@ impl CommandStatus {
 
 	pub fn add_errored(&mut self) {
 		self.errored = self.errored.saturating_add(1)
+	}
+}
+impl Default for CommandStatus {
+	fn default() -> Self {
+		Self { changed: 0, skipped: 0, errored: 0 }
 	}
 }
 impl std::fmt::Display for CommandStatus {
