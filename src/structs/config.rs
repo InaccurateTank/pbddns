@@ -1,4 +1,4 @@
-use std::{collections, fs, io};
+use std::{fs, io, path::PathBuf};
 use color_eyre::{Result, Section};
 use serde::Deserialize;
 use tracing::{debug, instrument};
@@ -83,14 +83,21 @@ where
 			#[derive(Deserialize)]
 			#[allow(unused)]
 			struct DomainConfigFields {
-				ssl: SslConfig,
-				update_tld: bool,
-				subdomains: Vec<String>
+				ssl: Option<SslConfig>,
+				update_tld: Option<bool>,
+				subdomains: Option<Vec<String>>
 			}
 
 			let mut res = vec![];
 			while let Some((name, fields)) = map.next_entry::<_, DomainConfigFields>()? {
-				res.push(DomainConfig {name, ssl: fields.ssl, update_tld: fields.update_tld, subdomains: fields.subdomains});
+				res.push(
+					DomainConfig {
+						name,
+						ssl: fields.ssl,
+						update_tld: fields.update_tld.unwrap_or(false),
+						subdomains: fields.subdomains.unwrap_or(Vec::new())
+					}
+				);
 			}
 			Ok(res)
 		}
@@ -102,6 +109,14 @@ where
 #[derive(Deserialize, Debug)]
 pub struct DomainConfig {
 	pub name: String,
+	pub ssl: Option<SslConfig>,
 	pub update_tld: bool,
 	pub subdomains: Vec<String>
+}
+
+#[derive(Deserialize, Debug)]
+pub struct SslConfig {
+	pub chain: Option<PathBuf>,
+	pub private: Option<PathBuf>,
+	pub public: Option<PathBuf>
 }

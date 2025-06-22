@@ -41,3 +41,17 @@ pub struct DnsRecordList {
 	/// The list of DNS records
 	pub records: Vec<DnsRecord>
 }
+
+/// SSL certificate bundle.
+#[derive(Deserialize, Default)]
+pub struct SslBundle {
+	/// The complete certificate chain.
+	#[serde(rename = "certificatechain")]
+	pub certificate_chain: String,
+	/// The private key.
+	#[serde(rename = "privatekey")]
+	pub private_key: String,
+	/// The public key.
+	#[serde(rename = "publickey")]
+	pub public_key: String
+}

@@ -78,4 +78,13 @@ impl<'a> Framework<'a> {
 	) -> Result<(), error::Error> {
 		self.post(self.endpoint.edit_by_domain_and_id(domain, id), self.keyring.with(cmd))
 	}
+
+	#[instrument(skip(self))]
+	/// Fetches a generated SSL package from Porkbun.
+	pub fn retrieve_ssl_by_domain(
+		&self,
+		domain: impl AsRef<str> + std::fmt::Debug
+	) -> Result<responses::SslBundle, error::Error> {
+		self.post(self.endpoint.retrieve_ssl_by_domain(domain), &self.keyring)
+	}
 }

@@ -49,6 +49,17 @@ impl<'a> ApiEndpoint<'a> {
 		// Frankly if this fails then somthing is deeply wrong
 		format!("{}/dns/edit/{}/{}", self.0, domain.as_ref(), id).parse().unwrap()
 	}
+
+	/// Retrieve the SSL certificate bundle for the domain.
+	///
+	/// Takes a [Keyring][crate::Keyring] and returns a [SslBundle][crate::responses::SslBundle].
+	pub fn retrieve_ssl_by_domain(
+		&self,
+		domain: impl AsRef<str>
+	) -> Uri {
+		// Frankly if this fails then somthing is deeply wrong
+		format!("{}/ssl/retrieve/{}", self.0, domain.as_ref()).parse().unwrap()
+	}
 }
 impl<'a> std::fmt::Display for ApiEndpoint<'a> {
 	fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
