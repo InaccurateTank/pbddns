@@ -1,7 +1,7 @@
 use std::{fs, io, path::PathBuf};
 use color_eyre::{Result, Section};
 use serde::Deserialize;
-use tracing::{debug, instrument};
+use tracing::{debug, error, instrument};
 use crate::error::ConfigError;
 
 const DEFAULT_CONFIG: &str = r##"endpoint = "https://api.porkbun.com/api/json/v3"
@@ -33,6 +33,7 @@ impl Config<'_> {
 				Ok(res)
 			},
 			Err(e) => {
+				error!("Could not find configuration file.");
 				let generated: Result<bool, io::Error> = if e.kind() == io::ErrorKind::NotFound {
 					if let Some(folder) = config_path.parent() {
 						fs::create_dir_all(folder)?;
